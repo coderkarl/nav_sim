@@ -23,6 +23,7 @@
 #include <memory>
 //#include <std_msgs/String.h>
 
+#include <irobot_create_msgs/msg/hazard_detection_vector.hpp>
 #include "my_interfaces/srv/set_int.hpp"
 
 class NavStates: public rclcpp::Node
@@ -46,6 +47,8 @@ private:
   void mapToOdomUpdateCallback(const std_msgs::msg::Int16::SharedPtr data);
 
   void pfWayPointUpdateCallback(const std_msgs::msg::Int16::SharedPtr data);
+
+  void hazardCallback(const irobot_create_msgs::msg::HazardDetectionVector::SharedPtr data);
 
   void update_plan();
   bool check_for_cone_obstacle();
@@ -96,6 +99,8 @@ private:
   std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Int16> > map_to_odom_update_sub_;
 
   std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Int16> > pf_wp_update_sub_;
+
+  std::shared_ptr<rclcpp::Subscription<irobot_create_msgs::msg::HazardDetectionVector> > hazard_sub_;
 
   rclcpp::Service<my_interfaces::srv::SetInt>::SharedPtr mow_area_server_;
 

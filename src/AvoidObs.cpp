@@ -43,7 +43,8 @@ AvoidObs::AvoidObs() :
 
     //Topic you want to subscribe
     scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>("scan", rclcpp::SensorDataQoS(), std::bind(&AvoidObs::scanCallback, this, _1)); //receive laser scan
-    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom", 10, std::bind(&AvoidObs::odomCallback, this, _1));
+    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(),
+                                                             std::bind(&AvoidObs::odomCallback, this, _1));
 
     // "/move_base_simple/goal"
     goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("wp_goal", 10, std::bind(&AvoidObs::goalCallback, this, _1));
@@ -463,7 +464,7 @@ void AvoidObs::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) /
 
 	    float angle  = scan->angle_min +(float(i) * scan->angle_increment);
 
-	    if(fabs(angle) < 60*M_PI/180.0 && range > 3.0)
+	    if(200*M_PI/180.0 < angle && angle < 245*M_PI/180.0 && range < 0.3)
 	    {
 	      continue;
 	    }

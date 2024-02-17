@@ -80,7 +80,8 @@ m_update_pf_waypoint(false)
 
   //Topic you want to subscribe
   scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>("scan", 50, std::bind(&NavStates::scanCallback, this, _1)); //receive laser scan
-  odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom", rclcpp::SensorDataQoS(), std::bind(&NavStates::odomCallback, this, _1));
+  odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(),
+                                                            std::bind(&NavStates::odomCallback, this, _1));
   clicked_goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 1, std::bind(&NavStates::clickedGoalCallback, this, _1));
   cam_cone_pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("cam_cone_pose", 1, std::bind(&NavStates::camConeCallback, this, _1));
   obs_cone_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("obs_cone_pose", 1, std::bind(&NavStates::obsConeCallback, this, _1));
@@ -89,6 +90,9 @@ m_update_pf_waypoint(false)
   map_to_odom_update_sub_ = create_subscription<std_msgs::msg::Int16>("map_to_odom_update", 1, std::bind(&NavStates::mapToOdomUpdateCallback, this, _1));
   
   pf_wp_update_sub_ = create_subscription<std_msgs::msg::Int16>("pf_wp_update", 1, std::bind(&NavStates::pfWayPointUpdateCallback, this, _1));
+
+  hazard_sub_ = create_subscription<irobot_create_msgs::msg::HazardDetectionVector>("hazard_detection", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(),
+                                                            std::bind(&NavStates::hazardCallback, this, _1));
 
   mow_area_server_ = create_service<my_interfaces::srv::SetInt>(
                 "set_mow_area", std::bind(&NavStates::mow_area_callback, this, _1, _2) );
@@ -555,6 +559,13 @@ bool NavStates::getPoseInFrame(const geometry_msgs::msg::PoseStamped& pose_in, s
 
 void NavStates::bumpCallback(const std_msgs::msg::Int16::SharedPtr msg)
 {
+  // Create3 bump frame_ids
+  // bump_left/right, bump_front_left/right, bump_front_center
+  // topic = hazard_detection, Type: irobot_create_msgs/msg/HazardDetectionVector
+
+  // FROM RPI ssh terminal
+  // ros2 param set /motion_control safety_override full
+  // ros2 param set /motion_control reflexes_enabled false
   m_bump_switch = msg->data;
   m_bump_count += m_bump_switch;
   if(m_bump_switch == 0)
@@ -587,6 +598,18 @@ void NavStates::bumpCallback(const std_msgs::msg::Int16::SharedPtr msg)
   std_msgs::msg::Int16 valid_bump_msg;
   valid_bump_msg.data = m_valid_bump;
   valid_bump_pub_->publish(valid_bump_msg);
+}
+
+void NavStates::hazardCallback(const irobot_create_msgs::msg::HazardDetectionVector::SharedPtr data) {
+  m_valid_bump = false;
+  if (m_state == STATE_RETREAT || m_state == STATE_RETREAT_FROM_CONE) {
+    return;
+  }
+  for (const auto& hzd : data->detections) {
+    if (hzd.type > 0) {
+      m_valid_bump = true;
+    }
+  }
 }
 
 void NavStates::mapToOdomUpdateCallback(const std_msgs::msg::Int16::SharedPtr msg)
@@ -684,11 +707,22 @@ void NavStates::commandTo(const geometry_msgs::msg::PoseStamped& goal)
 {
   m_speed = params.desired_speed;
   // use m_close_to_obs from scanCallback
-  if(m_state == STATE_TOUCH_TARGET &&
-      ((distance_between_poses(bot_pose, odom_goal_pose) < params.slow_approach_distance) || m_close_to_obs) )
+  if(m_state == STATE_TOUCH_TARGET || m_current_waypoint_type == WP_TYPE_CONE)
   {
-    m_speed = params.slow_speed;
+    double dist_to_goal = distance_between_poses(bot_pose, odom_goal_pose);
+    bool near_goal = dist_to_goal < params.slow_approach_distance;
+    if ( near_goal || m_close_to_obs) {
+      m_speed = params.slow_speed;
+
+      if (m_current_waypoint_type == WP_TYPE_CONE && m_state != STATE_RETREAT_FROM_CONE) {
+        m_cone_detected = true;
+      }
+    }
+    
   }
+
+
+
   double des_yaw = getTargetHeading(goal);
   double heading_error = des_yaw - bot_yaw;
 
@@ -725,16 +759,16 @@ void NavStates::commandTo(const geometry_msgs::msg::PoseStamped& goal)
   else
   {
     m_omega = 0.5*(heading_error); // TODO: parameter
-    if(fabs(m_omega) > 1.0) // slow for tight turns
+    if(fabs(m_omega) > 0.5) // slow for tight turns
     {
       m_omega = 1.0*m_omega/fabs(m_omega);
-      m_speed = params.slow_speed;
+      m_speed = 0.0; //params.slow_speed;
     }
   }
 
   if(fabs(heading_error) > params.max_fwd_heading_error_deg*M_PI/180)
   {
-    m_speed = -params.reverse_speed; //-m_speed
+    m_speed = -0.001; //-params.reverse_speed; //-m_speed
   }
 
   //RCLCPP_INFO(get_logger(), "des_yaw, bot_yaw, omega: %0.1f, %0.1f, %0.1f",des_yaw*180/M_PI, bot_yaw*180/M_PI, m_omega);
@@ -840,7 +874,7 @@ void NavStates::search_in_place()
     m_first_search = false;
   }
 
-  m_speed = params.slow_speed;
+  m_speed = 0.0; //params.slow_speed;
   m_omega = params.search_omega;
   if(m_cone_detected)
   {
@@ -871,7 +905,7 @@ void NavStates::search_in_place()
 void NavStates::turn_to_target()
 {
   double des_yaw = getTargetHeading(camera_cone_pose);
-  m_speed = params.slow_speed;
+  m_speed = 0.0; //params.slow_speed;
   m_omega = 1.0*(des_yaw - bot_yaw);
 
   if(fabs(m_omega) > params.max_omega) // TODO: PARAMETER
@@ -997,7 +1031,7 @@ void NavStates::update_states()
     m_speed = params.slow_speed*m_speed/fabs(m_speed);
   }
 
-  if(m_speed <= 0.0 && m_valid_bump)
+  if(m_speed <= 0.0 && (m_valid_bump || m_state == STATE_RETREAT) )
   {
     m_filt_speed = m_speed;
   }

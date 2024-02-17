@@ -28,7 +28,7 @@ Astar::Astar():
 		m_map()
 {
     path_pub_ = create_publisher<nav_msgs::msg::Path>("path", 1);
-    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom", 10,
+    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(),
                                    std::bind(&Astar::odomCallback, this, _1));
     goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("wp_goal", 10,
                                    std::bind(&Astar::goalCallback, this, _1));
