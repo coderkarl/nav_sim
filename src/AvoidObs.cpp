@@ -464,10 +464,11 @@ void AvoidObs::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) /
 
 	    float angle  = scan->angle_min +(float(i) * scan->angle_increment);
 
-	    if(200*M_PI/180.0 < angle && angle < 245*M_PI/180.0 && range < 0.3)
-	    {
-	      continue;
-	    }
+      // if(200*M_PI/180.0 < angle && angle < 245*M_PI/180.0 && range < 0.3)
+	    // if(fabs(angle) < 60*M_PI/180.0 && range > 3.0)
+	    // {
+	    //   continue;
+	    // }
 
 	    //clear map cells
 	    // only clear at range >= 0.5 meters

@@ -1028,7 +1028,7 @@ void NavStates::update_states()
   if(fabs(m_omega) > params.max_omega)
   {
     m_omega = params.max_omega*m_omega/fabs(m_omega);
-    m_speed = params.slow_speed*m_speed/fabs(m_speed);
+    m_speed = 0.0; //params.slow_speed*m_speed/fabs(m_speed);
   }
 
   if(m_speed <= 0.0 && (m_valid_bump || m_state == STATE_RETREAT) )
