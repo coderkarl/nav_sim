@@ -93,6 +93,9 @@ m_update_pf_waypoint(false)
   mow_area_server_ = create_service<my_interfaces::srv::SetInt>(
                 "set_mow_area", std::bind(&NavStates::mow_area_callback, this, _1, _2) );
 
+  set_waypoint_server_ = create_service<my_interfaces::srv::SetInt>(
+                "set_waypoint", std::bind(&NavStates::set_waypoint_callback, this, _1, _2) );
+
 
   params.plan_rate = declare_parameter("plan_rate_hz", 10.0);
   params.use_PotFields = declare_parameter("use_PotFields", false);
@@ -203,6 +206,62 @@ m_update_pf_waypoint(false)
 
   //std::chrono::milliseconds period_msec = (int)(1000.0/get_plan_rate());
   //timer_ = rclcpp::create_wall_timer(std::chrono::milliseconds, std::bind(&NavStates::update_states, this) );
+}
+
+bool NavStates::add_mow_point()
+{
+  geometry_msgs::msg::PoseStamped map_pose;
+  if(getPoseInFrame(bot_pose, "map", map_pose)) {
+    float dx = 0;
+    float dy = 0;
+    if (dyn_x_coords.size() > 0) {
+      dx = map_pose.pose.position.x - dyn_x_coords.back();
+      dy = map_pose.pose.position.y - dyn_y_coords.back();
+      float dist_sqd = dx*dx + dy*dy;
+      if (dist_sqd < 1.0) {
+        return false;
+      }
+    }
+
+    dyn_x_coords.push_back(map_pose.pose.position.x);
+    dyn_y_coords.push_back(map_pose.pose.position.y);
+    RCLCPP_INFO(get_logger(), "Added Mow Point (%.1f, %.1f)",
+                map_pose.pose.position.x, map_pose.pose.position.y);
+    size_t n = dyn_x_coords.size();
+    
+    if (n == 2) {
+      x_coords[coords_index].clear();
+      y_coords[coords_index].clear();
+      x_coords[coords_index].push_back(dyn_x_coords[0]);
+      y_coords[coords_index].push_back(dyn_y_coords[0]);
+      // p0......................p1
+      // p3......................p2
+      
+      bool is_xdir = std::abs(dx) > std::abs(dy);
+        
+      x_coords[coords_index].push_back(dyn_x_coords[is_xdir ? 1 : 0]);
+      y_coords[coords_index].push_back(dyn_y_coords[is_xdir ? 0 : 1]);
+
+      x_coords[coords_index].push_back(dyn_x_coords[1]);
+      y_coords[coords_index].push_back(dyn_y_coords[1]);
+
+      x_coords[coords_index].push_back(dyn_x_coords[is_xdir ? 0 : 1]);
+      y_coords[coords_index].push_back(dyn_y_coords[is_xdir ? 1 : 0]);
+    } else if (n == 4) {
+      x_coords[coords_index].clear();
+      y_coords[coords_index].clear();
+      for (size_t k = 0; k<n; ++k) {
+        x_coords[coords_index].push_back(dyn_x_coords[k]);
+        y_coords[coords_index].push_back(dyn_y_coords[k]);
+      }
+    } else if (n > 4) {
+      x_coords[coords_index].push_back(map_pose.pose.position.x);
+      y_coords[coords_index].push_back(map_pose.pose.position.x);
+    }
+    return true;
+  }
+  RCLCPP_INFO(get_logger(), "Could not get pose in map frame");
+  return false;
 }
 
 void NavStates::update_mow_path()
@@ -947,6 +1006,20 @@ void NavStates::mow_area_callback(const my_interfaces::srv::SetInt::Request::Sha
   {
     response->success = false;
   }
+}
+
+void NavStates::set_waypoint_callback(const my_interfaces::srv::SetInt::Request::SharedPtr request,
+    const my_interfaces::srv::SetInt::Response::SharedPtr response)
+{
+  response->success = true;
+  if (request->data == 1) {
+    dyn_x_coords.clear();
+    dyn_y_coords.clear();
+  }
+  add_mow_point();
+  //update_mow_path(); // Set mow area again to call these
+  //update_waypoint();
+
 }
 
 void NavStates::update_states()
