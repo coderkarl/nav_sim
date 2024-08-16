@@ -39,23 +39,27 @@ def generate_launch_description():
                     {'bump_db_limit': 2},
                     {'path_step_size': 3},
                     {'waypoints_are_in_map_frame': True},
-                    {'x_coords0':          [15.0, -6.0,  -6.0,  15.0]}, # behind garage ***LATEST
-                    {'y_coords0':          [-5.0, -5.0, -22.0,-22.0]}, #-3.0
+                    #{'x_coords0':          [14.0, -7.0,  -7.0,  14.0]}, # behind garage ***LATEST
+                    #{'y_coords0':          [-4.0, -4.0, -22.0,-22.0]}, #-3.0
+                    #{'x_coords0':          [13.2, 13.2,  24,  24]}, # back beween trees
+                    #{'y_coords0':          [7.2, -10, -10, 7.2]}, #
                     {'x_coords1':          [15.0,  15.0, 28.0, 28.0]}, # back between trees, x1=15 x2=28***LATEST
                     {'y_coords1':          [10.6, -8.0, -8.0, 10.6]}, #10.6 -8
                     #{'x_coords':          [24.6, 24.6, 38.0, 38.0]}, # east close temp ***LATEST
                     #{'y_coords':          [23.4, 11.0, 11.0, 23.4]},
-                    #{'x_coords':          [28.0, 28.0, 38.0, 38.0]}, # east side 29, 38 ***LATEST
-                    #{'y_coords':          [11.0, -21.0, -21.0, 11.0]}, # 23, -16
+		    #{'x_coords0':          [-3.0, 0.0,  0.0, -3.0]}, # SELECT, east side
+                    #{'y_coords0':          [-4.0, -4.0, -0.0, -0.0]},
+                    {'x_coords0':          [30.0, 30.0, 38.0, 38.0]}, # east side 29, 38 ***LATEST
+                    {'y_coords0':          [21.0, -11.0, -11.0, 21.0]}, # 23, -16
                     
                     {'x_coords2':          [-5.0, -5.0, -8.2, -8.2]}, # west ***LATEST
                     {'y_coords2':          [ 16.4,  38.0, 38.0, 16.4]},
                     
                     {'x_coords3':          [1.6, 24.6, 24.6, 1.6]}, # front between trees ***LATEST
-                    {'y_coords3':          [39.5, 39.5, 47.0, 47.0]},
+                    {'y_coords3':          [37.5, 37.5, 46.0, 46.0]},
                     
-                    #{'x_coords':          [26.6, 12.0,  12.0,  26.6]}, # front south **LATEST
-                    #{'y_coords':          [31.6, 31.6, 39.0, 39.0]},
+                    #{'x_coords1':          [26.6, 12.0,  12.0,  26.6]}, # front south **LATEST
+                    #{'y_coords1':          [31.6, 31.6, 39.0, 39.0]},
                     
                     #{'x_coords':          [32.0, 32.0, 38.0, 38.0]}, # east side temp
                     #{'y_coords':          [11.0, -21.0, -21.0, 11.0]}, #
@@ -64,7 +68,7 @@ def generate_launch_description():
                     {'hill_waypoint_list': [0,   0,    0]},
                     {'is_mow_boundary': True},
                     {'mow_ccw': True},
-                    {'mow_width': 0.2}, #0.2
+                    {'mow_width': 0.3}, #0.2
                     {'mow_wp_spacing': 2.0},
         ],
         remappings=[('cmd_vel', 'ignore_cmd_vel')]
@@ -101,9 +105,9 @@ def generate_launch_description():
                     {'Kt': 10.0},
                     {'offset_gamma': pi/2},
                     {'max_heading_error': pi/3},
-                    {'Kw': 2.5},
-                    {'des_speed': 1.0},
-                    {'min_omega': 0.5},
+                    {'Kw': 2.0},
+                    {'des_speed': 0.7},
+                    {'min_omega': 0.3},
                     {'d_retreat': 1.7}
         ]
     )
