@@ -157,9 +157,15 @@ geometry_msgs::msg::Vector3 PotentialFields::get_vxvy_mow(float bot_yaw, bool& r
     obs_dist = sqrt(odx*odx + ody*ody);
     if(obs_dist < min_obs_dist)
     {
-      min_obs_dist = obs_dist;
-      min_odx = odx;
-      min_ody = ody;
+      obs_unit_vec.x = odx / obs_dist;
+      obs_unit_vec.y = ody / obs_dist;
+      float obs_goal_dot = g_unit_vec.x * obs_unit_vec.x + g_unit_vec.y * obs_unit_vec.y;
+      if (obs_goal_dot > -0.7)
+      {
+        min_obs_dist = obs_dist;
+        min_odx = odx;
+        min_ody = ody;
+      }
     }
   }
 
