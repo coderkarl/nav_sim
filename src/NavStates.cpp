@@ -100,6 +100,7 @@ m_update_pf_waypoint(false)
 
   params.plan_rate = declare_parameter("plan_rate_hz", 10.0);
   params.use_PotFields = declare_parameter("use_PotFields", false);
+  params.close_cone_to_bot_dist = declare_parameter("close_cone_to_bot_dist", 1.0);
   params.valid_cone_to_wp_dist = declare_parameter("valid_cone_to_wp_dist", 1.0);
   params.near_path_dist = declare_parameter("near_path_dist", 1.0);
   params.valid_end_of_path_dist = declare_parameter("valid_end_of_path_dist", 5.0);
@@ -713,10 +714,6 @@ void NavStates::commandTo(const geometry_msgs::msg::PoseStamped& goal)
     bool near_goal = dist_to_goal < params.slow_approach_distance;
     if ( near_goal || m_close_to_obs) {
       m_speed = params.slow_speed;
-
-      if (m_current_waypoint_type == WP_TYPE_CONE && m_state != STATE_RETREAT_FROM_CONE) {
-        m_cone_detected = true;
-      }
     }
     
   }
@@ -808,11 +805,18 @@ void NavStates::track_path()
     update_waypoint();
   }
 
-  if(!(m_odom_received && m_path_received) || m_path.poses.size() == 0)
+  if(!(m_odom_received && m_path_received) || (m_path.poses.size() == 0))
   {
-	//RCLCPP_INFO(get_logger(), "odom_received, path_received, path size: %d, %d, %d",(int)m_odom_received, (int)m_path_received, (int)m_path.poses.size());
+	  RCLCPP_INFO(get_logger(), "odom_received, path_received, path size: %d, %d, %d",(int)m_odom_received, (int)m_path_received, (int)m_path.poses.size());
     //m_state = STATE_SEARCH_IN_PLACE;
-    return;
+    if (distance_between_poses(bot_pose, odom_goal_pose) < 0.3) {
+      m_path.poses.clear();
+      m_path.poses.push_back(odom_goal_pose);
+      m_path_received = true;
+    } else if (!m_cone_detected && !m_odom_received) {
+      return;
+    }
+    
   }
 
   if(m_valid_bump || m_collision)
@@ -825,8 +829,11 @@ void NavStates::track_path()
 
   if(m_cone_detected && m_current_waypoint_type == WP_TYPE_CONE) //TODO: Verify we should ignore m_cone_detected for intermediate waypoints
   {
-    m_state = STATE_TURN_TO_TARGET;
-    return;
+    if (!m_path_received || ( distance_between_poses(bot_pose, odom_goal_pose) < params.close_cone_to_bot_dist) ) {
+      m_state = STATE_TURN_TO_TARGET;
+      return;
+    }
+    
   }
 
   // end of path?, See pathCallback
@@ -912,7 +919,7 @@ void NavStates::turn_to_target()
     m_omega = params.max_omega*m_omega/fabs(m_omega); //TODO: PARAMETER
   if(fabs(m_omega) < params.search_omega)
     m_omega = params.search_omega*m_omega/fabs(m_omega); //TODO: PARAMETER
-  if(m_cone_detected)
+  if(m_cone_detected && distance_between_poses(bot_pose, odom_goal_pose) < params.close_cone_to_bot_dist)
   {
     m_state = STATE_TOUCH_TARGET;
     update_target();

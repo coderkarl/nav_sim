@@ -148,6 +148,7 @@ private:
   {
     double plan_rate; //Default 10 Hz, how often we use potential fields to update cmd_vel
     bool use_PotFields;
+    double close_cone_to_bot_dist;
     double valid_cone_to_wp_dist;
     double near_path_dist;
     double valid_end_of_path_dist;
