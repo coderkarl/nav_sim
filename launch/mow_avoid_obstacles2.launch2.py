@@ -100,14 +100,14 @@ def generate_launch_description():
                     {'known_obstacle_time_limit': 30.0},
                     {'useLinear': True},
                     {'useTan': True},
-                    {'R1': 1.5},
-                    {'R2': 2.0},
+                    {'R1': 1.75},
+                    {'R2': 2.25},
                     {'Kt': 10.0},
                     {'offset_gamma': pi/2},
                     {'max_heading_error': pi/3},
-                    {'Kw': 2.0},
+                    {'Kw': 1.3},
                     {'des_speed': 0.7},
-                    {'min_omega': 0.3},
+                    {'min_omega': 1.0},
                     {'d_retreat': 1.7}
         ]
     )
