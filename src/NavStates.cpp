@@ -807,7 +807,7 @@ void NavStates::track_path()
 
   if(!(m_odom_received && m_path_received) || (m_path.poses.size() == 0))
   {
-	  RCLCPP_INFO(get_logger(), "odom_received, path_received, path size: %d, %d, %d",(int)m_odom_received, (int)m_path_received, (int)m_path.poses.size());
+	  //RCLCPP_INFO(get_logger(), "odom_received, path_received, path size: %d, %d, %d",(int)m_odom_received, (int)m_path_received, (int)m_path.poses.size());
     //m_state = STATE_SEARCH_IN_PLACE;
     if (distance_between_poses(bot_pose, odom_goal_pose) < 0.3) {
       m_path.poses.clear();
@@ -1026,11 +1026,11 @@ void NavStates::update_states()
     state_init();
   }
 
-  if(!(m_odom_received && m_path_received) )
+  /*if(!(m_odom_received && m_path_received) )
   {
     m_speed = 0.0;
     m_omega = 0.0;
-  }
+  }*/
 
   if(fabs(m_omega) > params.max_omega)
   {
@@ -1047,7 +1047,7 @@ void NavStates::update_states()
     double alpha = params.cmd_speed_filter_factor;
     m_filt_speed = m_filt_speed*alpha + m_speed*(1.0-alpha);
   }
-
+/*
   if(fabs(m_filt_speed) > params.desired_speed)
   {
     m_filt_speed = 0.0;
@@ -1056,7 +1056,7 @@ void NavStates::update_states()
   {
     m_omega = 0.0;
   }
-
+*/
   geometry_msgs::msg::Twist cmd;
   cmd.linear.x = m_filt_speed;
   cmd.angular.z = m_omega;
