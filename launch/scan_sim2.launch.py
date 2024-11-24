@@ -19,11 +19,11 @@ def generate_launch_description():
         executable="light_scan_sim_node",
         parameters=[{'freq_hz': 10.0},
                     {'range_min': 0.1},
-                    {'range_max': 50.0},
+                    {'range_max': 15.0},
                     {'range_noise': 0.05},
-                    {'angle_min': -0.39},
-                    {'angle_max': 0.39},
-                    {'angle_increment': 0.052},
+                    {'angle_min': -1.17},
+                    {'angle_max': 1.17},
+                    {'angle_increment': 0.026},
                     {'reset_map_server': False}
         ]
     )

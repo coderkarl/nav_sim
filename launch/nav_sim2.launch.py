@@ -38,7 +38,7 @@ def generate_launch_description():
     
     map_file = os.path.join(
         get_package_share_directory('nav_sim'),
-        'config', 'big_run_map1u_clean_append6.yaml'
+        'config', 'descent_map1.yaml'
     )
     sim_bot_node = Node(
         package="nav_sim",
@@ -135,6 +135,6 @@ def generate_launch_description():
     ld.add_action(map_node)
     ld.add_action(configure_map_event)
     ld.add_action(activate_map_event)
-    ld.add_action(avoid_obs_launch)
+    #ld.add_action(avoid_obs_launch)
     
     return ld
