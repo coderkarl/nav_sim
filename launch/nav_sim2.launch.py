@@ -38,7 +38,7 @@ def generate_launch_description():
     
     map_file = os.path.join(
         get_package_share_directory('nav_sim'),
-        'config', 'descent_map1.yaml'
+        'config', 'descent_map2.yaml'
     )
     sim_bot_node = Node(
         package="nav_sim",

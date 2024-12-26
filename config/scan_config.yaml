@@ -1,6 +1,6 @@
 range:
   min: 0.1  # Min range (m)
-  max: 50.0  # Max range (m)
+  max: 8.0  # Max range (m)
   noise: 0.005  # Standard deviation of gaussian noise (m)
 angle:
   min: -0.39  # The min scan angle (radians), use -0.39 for M16 Leddar
