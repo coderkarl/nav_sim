@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+#from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import rclpy.time
 import math, random
 import numpy as np
@@ -44,6 +45,16 @@ class SimBot(Node):
         self.cmd_sub = self.create_subscription(
             Twist, 'cmd_vel', self.sim_cmd_callback, 1)
         self.cmd_sub # prevent unused var warning
+
+
+        # qos_profile = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+        #     history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+        #     depth=1
+        # )
+        self.scan_sub = self.create_subscription(
+            LaserScan, 'scan', self.sim_scan_callback, rclpy.qos.qos_profile_sensor_data)
+        self.scan_sub # prevent unsed var warning
         
         self.USE_SIMPLE_SCAN_SIM = False
         
@@ -60,6 +71,7 @@ class SimBot(Node):
         now_stamp = self.get_clock().now().to_msg()
         self.prev_time = now_stamp
         self.scan_time1 = now_stamp
+        self.collision_time = now_stamp
         
         self.get_logger().info('Initializing bot simulator.')
         
@@ -80,7 +92,9 @@ class SimBot(Node):
         self.check_time = now_stamp
         self.noise_scan_start_time = now_stamp
         
-        self.timer = self.create_timer(1./20., self.update_odom)
+        self.timer = self.create_timer(1./50., self.update_odom)
+        self.collision = False
+        self.collision_dir = 1 # 1 fwd, -1 rev
         
         #self.map_timer = self.create_timer(2.0, self.call_load_map_server)
         
@@ -105,6 +119,18 @@ class SimBot(Node):
     
     def dt_to_sec(self, stampA, stampB):
         return stampA.sec + stampA.nanosec * 10**-9 - stampB.sec - stampB.nanosec * 10**-9
+
+    def sim_scan_callback(self, data):
+        if not self.collision:
+            for k,r in enumerate(data.ranges):
+                if r < 0.3:
+                    theta_rad = data.angle_min + data.angle_increment * k;
+                    self.collision_dir = np.sign(np.cos(theta_rad));
+                    self.w_cmd = 0.0
+                    self.v_cmd = -0.5 * self.collision_dir
+                    self.collision = True
+                    self.collision_time = self.get_clock().now().to_msg()
+                    break
                 
     def sim_cmd_callback(self, data):
         v = data.linear.x
@@ -131,6 +157,10 @@ class SimBot(Node):
             
         self.v_cmd = v
         self.w_cmd = w
+
+        if self.collision:
+            self.w_cmd = 0.0
+            self.v_cmd = -0.5 * self.collision_dir
     
     def update_odom(self):
         
@@ -146,6 +176,16 @@ class SimBot(Node):
         
         dmeters = self.v*dt + 0.5*accel*dt**2
         self.v += accel*dt
+
+        if self.collision:
+            self.v = self.v_cmd
+            dmeters = self.v*dt
+            time_since_collision = self.dt_to_sec(t2,self.collision_time)
+            if time_since_collision > 0.2:
+                self.collision = False
+                self.v_cmd = 0.0
+                self.v = 0.0
+                dmeters = 0.0
         
         w_dot = (self.w_cmd - self.w)/dt
         mu_w = np.sign(w_dot)
