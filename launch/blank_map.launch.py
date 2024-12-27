@@ -26,64 +26,19 @@ import os
 def generate_launch_description():
     ld = LaunchDescription()
     
-    scan_sim_launch = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                get_package_share_directory('nav_sim') + '/launch/scan_sim2.launch.py')
-    )
-    
-    avoid_obs_launch = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                get_package_share_directory('nav_sim') + '/launch/sim_avoid_obstacles2.launch.py')
-    )
-    
     map_file = os.path.join(
         get_package_share_directory('nav_sim'),
-        'config', 'descent_map2.yaml'
-    )
-
-    sim_bot_node = Node(
-        package="nav_sim",
-        executable="sim_bot.py",
-        name="sim_bot_node",
-        parameters=[{"map_yaml_file": map_file}]
+        'config', 'blank_map.yaml'
     )
     
     load_map_node = Node(
         package="nav_sim",
         executable="load_map_client",
+        name="blank_map_client",
         output="screen",
         emulate_tty=True,
-        parameters=[{"map_yaml_file": map_file}]
-    )
-    
-    static_base_tf_node = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_base_tf',
-        arguments=['0', '0', '0.0', '0', '0', '0', 'base_link', 'base_footprint']
-    ) 
-    static_laser_tf_node = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_laser_tf',
-        arguments=['0', '0', '0.3', '0', '0', '0', 'base_link', 'laser']
-    )    
-    static_map_tf_node = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_map_tf',
-        arguments=['5.0', '0', '0', '0', '0', '0', 'map', 'odom']
-    )
-    
-    config_rviz = os.path.join(
-        get_package_share_directory('nav_sim'),
-        'config', 'nav_sim_ros2.rviz'
-    )
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=['-d', config_rviz],
-        #remappings=[("goal_pose", "wp_goal")]
+        parameters=[{"map_yaml_file": map_file}],
+        remappings = [('/map_server/load_map', '/blank_map_server/load_map')]
     )
     
     # https://answers.ros.org/question/326070/ros2-nav2_map_server-can-not-load-map/
@@ -92,10 +47,11 @@ def generate_launch_description():
         package = 'nav2_map_server',
         namespace = '',
         executable='map_server',
-        name='map_server',
+        name='blank_map_server',
         parameters=[
             {"yaml_filename": map_file}
-        ]
+        ],
+        remappings = [('/map', '/amap')]
     )
     # ros2 nav2_util lifecycle_bringup map_server
     # OR
@@ -104,9 +60,10 @@ def generate_launch_description():
     map_start_node = Node(
         package='nav2_util',
         executable='lifecycle_bringup',
-        arguments=['map_server']
+        arguments=['blank_map_server'],
+        remappings = [('/map', '/amap')]
     )
-    cmd_string = 'ros2 lifecycle set map_server configure & ros2 lifecycle set map_server activate'
+    cmd_string = 'ros2 lifecycle set blank_map_server configure & ros2 lifecycle set blank_map_server activate'
     map_start_cmd = ExecuteProcess(
             cmd=cmd_string.split(' '),
             output='screen'
@@ -132,17 +89,9 @@ def generate_launch_description():
         )
     )
     
-    # The map is only published once when activated, and scan_sim_launch misses it
-    ld.add_action(scan_sim_launch)
-    ld.add_action(sim_bot_node)
     ld.add_action(load_map_node)
-    ld.add_action(static_base_tf_node)
-    ld.add_action(static_laser_tf_node)
-    ld.add_action(static_map_tf_node)
-    ld.add_action(rviz_node)
     ld.add_action(map_node)
     ld.add_action(configure_map_event)
     ld.add_action(activate_map_event)
-    #ld.add_action(avoid_obs_launch)
     
     return ld
