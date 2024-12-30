@@ -43,6 +43,8 @@ bt_navigator:
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /odom
+    default_nav_to_pose_bt_xml: $(find-pkg-share nav2_bt_navigator)/behavior_trees/navigate_w_replanning_speed.xml
+    default_nav_through_poses_bt_xml: $(find-pkg-share nav2_bt_navigator)/behavior_trees/navigate_w_replanning_speed.xml
     bt_loop_duration: 10
     default_server_timeout: 20
     wait_for_service_timeout: 1000
@@ -285,6 +287,10 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
+      height: 50
+      width: 50
+      origin_x: -25.0
+      origin_y: -25.0
       update_frequency: 2.0
       publish_frequency: 2.0
       global_frame: map
@@ -310,6 +316,8 @@ global_costmap:
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
+        enabled: False
+        map_topic: /amap
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
